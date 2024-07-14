@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "eval"
+version = "0.1.0"
+description = ""
+authors = ["Michael Piccirillo <70709374+Khrysys@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+typer = {extras = ["all"], version = "^0.12.3"}
+requests = "^2.32.3"
+aiohttp = "^3.9.5"
+aiofiles = "^24.1.0"
+sqlmodel = "^0.0.19"
+tqdm = "^4.66.4"
+python-call-graph = "^2.1.2"
+alembic = "^1.13.2"
+chess = "^1.10.0"
+psycopg = {extras = ["binary"], version = "^3.2.1"}
+scipy = "^1.14.0"
+matplotlib = "^3.9.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
