@@ -110,13 +110,15 @@ def hold():
             session.add(player)
         x = rankdata(values, method='ordinal')/len(values)
         plt.scatter(x, values)
-        plt.savefig(f'./loader/{len(x)}')
+        plt.savefig(f'var/loader/{len(x)}')
         session.commit()
 
 
 def recurse():
     with Session(engine) as session:
         players = session.exec(select(Player)).all()
+        if len(players) == 0:
+            return
         for player in players:
             for archive in player.archives(end=1):
                 archive.games(session=session)
@@ -127,4 +129,5 @@ def recurse():
 
 if __name__ == '__main__':
     init_models()
-    recurse()
+    while True:
+        recurse()
