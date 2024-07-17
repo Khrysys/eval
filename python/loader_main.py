@@ -1,7 +1,7 @@
 from math import floor, sqrt
 from models import *
 import matplotlib.pyplot as plt
-from scipy.stats import rankdata
+from scipy.stats import rankdata # type: ignore
 
 def hold():
     with Session(engine) as session:

@@ -1,6 +1,5 @@
 from datetime import datetime
 from io import StringIO
-from typing import Generator
 from sqlmodel import Session, select
 
 
@@ -81,7 +80,7 @@ class Chesscom(System):
         data = request_with_timing(archive.url)
         output: list[Game] = []
         if not data:
-            return []
+            return output
         
         games = data['games']
         start = time()

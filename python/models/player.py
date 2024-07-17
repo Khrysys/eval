@@ -1,6 +1,5 @@
-from sqlmodel import Field, SQLModel, Session, select
+from sqlmodel import Field, SQLModel, Session, select # type: ignore
 
-from .game import Game
 from .system import SystemNames
 
 class Player(SQLModel, table=True):
