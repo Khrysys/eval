@@ -13,7 +13,6 @@ def hold():
 
         # Look at al confidence intervals
         matches = session.exec(select(Match)).all()
-        print('here')
 
         for match in matches:
             if len(match.games) < 2:
