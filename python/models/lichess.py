@@ -15,3 +15,7 @@ class Lichess(System):
             data = request_with_timing(url)
         else:
             data = make_request_with_retries(url)
+
+    @staticmethod
+    def get_archives(player: Player, start: int, end: int, timing: bool = False):
+        raise NotImplementedError

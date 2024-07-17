@@ -1,4 +1,3 @@
-
-/migrations
-alembic.ini
+database/data
+python/loader
 *.pyc

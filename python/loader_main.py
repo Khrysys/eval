@@ -1,12 +1,9 @@
-from json import dumps
-from math import floor
-
+from math import floor, sqrt
 from models import *
-from asyncio import run
+import matplotlib.pyplot as plt
 from scipy.stats import rankdata
-from matplotlib import pyplot as plt
 
-def update_player_ratings():
+def hold():
     with Session(engine) as session:
         effective_intervals = 0
         # We are using a set to prevent double counting
@@ -16,16 +13,16 @@ def update_player_ratings():
 
         # Look at al confidence intervals
         matches = session.exec(select(Match)).all()
+        print('here')
 
         for match in matches:
             if len(match.games) < 2:
                 continue
 
-            print('here')
             match.calculate_rating_difference(session=session)
             
-            player_a = match.games[0].player_a.username
-            player_b = match.games[0].player_b.username
+            player_a = match.player_a.username
+            player_b = match.player_b.username
             if player_a not in valid_matches:
                 valid_matches[player_a] = set()
             if player_b not in valid_matches:
@@ -40,8 +37,8 @@ def update_player_ratings():
             unscaled_ratings[username] = (0, 0)
             for match_id in data:
                 match = [x for x in matches if x.id == match_id][0] # This is safe, we know that match_id only exists once and only once inside of this set
-                is_player_a = username == match.games[0].player_a.username
-                opponent = match.games[0].player_b if is_player_a else match.games[0].player_a
+                is_player_a = username == match.player_a.username
+                opponent = match.player_b if is_player_a else match.player_a
                 opponent_username = opponent.username
                 if opponent_username not in unscaled_ratings:
                     continue
@@ -82,6 +79,9 @@ def update_player_ratings():
             lower, upper = unscaled_ratings[username]
             final_ratings[username] = (lower + upper) / 2
 
+        if len(final_ratings) == 0:
+            print('No players to run data on yet')
+            return
 
         # Normalize all ratings
         minimum = min(final_ratings.values())
@@ -95,8 +95,6 @@ def update_player_ratings():
             final_ratings[username] *= 3000 / maximum
 
         # Update all ratings
-        print(dumps(final_ratings, indent=4))
-
         values = list(final_ratings.values())
 
         #print(x)
@@ -111,14 +109,23 @@ def update_player_ratings():
             else:
                 player.rating = -1
             session.add(player)
-        session.commit()
         x = rankdata(values, method='ordinal')/len(values)
         plt.scatter(x, values)
-        plt.show()
+        plt.savefig(f'./loader/{len(x)}')
+        session.commit()
 
-async def main():
-    #await recurse()
-    update_player_ratings()
+
+def recurse():
+    with Session(engine) as session:
+        players = session.exec(select(Player)).all()
+        for player in players:
+            for archive in player.archives(end=1):
+                archive.games(session=session)
+                session.flush()
+
+        session.commit()
+    hold()
 
 if __name__ == '__main__':
-    run(main())
+    init_models()
+    recurse()

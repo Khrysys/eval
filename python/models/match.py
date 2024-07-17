@@ -1,16 +1,25 @@
 
 from typing import TYPE_CHECKING
-from sqlmodel import Field, Relationship, SQLModel, Session, UniqueConstraint, select
+from sqlmodel import Field, Relationship, SQLModel, Session, UniqueConstraint, PrimaryKeyConstraint, select
 
 from .player import Player
 from .game import Game
 from .functions import z_score_2tail, prop_se
 
 class Match(SQLModel, table=True):
-    __tableargs__ = (UniqueConstraint('interval_id'), )
-    id: int | None = Field(default=None, primary_key=True)
+    __tableargs__ = (UniqueConstraint('interval_id'),)
+    id: int | None = Field(default = None, primary_key=True)
+    games: list[Game] = Relationship(back_populates='match')
 
-    games: list['Game'] = Relationship(back_populates='match')
+    player_a_username: str | None = Field(default = None, foreign_key='player.username')
+    player_b_username: str | None = Field(default = None, foreign_key='player.username')
+
+    player_a: Player = Relationship(sa_relationship_kwargs={
+        'foreign_keys': 'match.c.player_a_username'
+    })
+    player_b: Player = Relationship(sa_relationship_kwargs={
+        'foreign_keys': 'match.c.player_b_username'
+    })
 
     interval_mean: float
     interval_half_turn: float
@@ -20,7 +29,7 @@ class Match(SQLModel, table=True):
 
     def calculate_rating_difference(self, confidence: float = 0.95, *, session: Session):
         try:
-            player_a = self.games[0].player_a
+            player_a = self.player_a
         except:
             return None
 
@@ -41,12 +50,12 @@ class Match(SQLModel, table=True):
     def points(self, player: Player):
         points = 0
         for game in self.games:
-            if game.player_a == player:
+            if self.player_a == player:
                 player_a = True
-            elif game.player_b == player:
+            elif self.player_b == player:
                 player_a = False
             else: 
-                raise Exception(f"Player {player.username} is not in Match(id={self.id})")
+                raise Exception(f"Player {player.username} is not in this Match")
 
             if player_a:
                 points += (1 if game.player_a_win else (0.5 if game.draw else 0))
@@ -57,13 +66,14 @@ class Match(SQLModel, table=True):
 
     @staticmethod
     def get(p1: Player, p2: Player, *, session: Session):
-        game = session.exec(select(Game).where(Game.player_a==p1).where(Game.player_b==p2)).first()
-        if game:
-            return game.match
-        game = session.exec(select(Game).where(Game.player_b==p1).where(Game.player_a==p2)).one_or_none()
-        if game:
-            return game.match
+        match = session.exec(select(Match).where(Match.player_a==p1).where(Match.player_b==p2)).first()
+        if match:
+            return match
 
-        result = Match(games=[], interval_mean=0, interval_half_turn=0)
+        match = session.exec(select(Match).where(Match.player_a==p2).where(Match.player_b==p1)).one_or_none()
+        if match:
+            return match
+
+        result = Match(games=[], player_a=p1, player_b=p2, interval_mean=0, interval_half_turn=0)
         session.add(result)
         return result
