@@ -1,9 +1,8 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlmodel import Field, Relationship, SQLModel, ForeignKeyConstraint
+from sqlmodel import Field, Relationship, SQLModel # type: ignore
 
 if TYPE_CHECKING:
-    from .player import Player
     from .opening import Opening
     from .time_control import TimeControl
     from .match import Match

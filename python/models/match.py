@@ -1,13 +1,10 @@
-
-from typing import TYPE_CHECKING
-from sqlmodel import Field, Relationship, SQLModel, Session, UniqueConstraint, PrimaryKeyConstraint, select
+from sqlmodel import Field, Relationship, SQLModel, Session, select # type: ignore
 
 from .player import Player
 from .game import Game
 from .functions import z_score_2tail, prop_se
 
 class Match(SQLModel, table=True):
-    __tableargs__ = (UniqueConstraint('interval_id'),)
     id: int | None = Field(default = None, primary_key=True)
     games: list[Game] = Relationship(back_populates='match')
 

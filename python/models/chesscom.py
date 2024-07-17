@@ -76,8 +76,11 @@ class Chesscom(System):
         return output
     
     @staticmethod
-    def get_games(archive: Archive, *, session: Session):
-        data = request_with_timing(archive.url)
+    def get_games(archive: Archive, timing: bool = True, *, session: Session):
+        if timing:
+            data = request_with_timing(archive.url)
+        else:
+            data = make_request_with_retries(archive.url)
         output: list[Game] = []
         if not data:
             return output

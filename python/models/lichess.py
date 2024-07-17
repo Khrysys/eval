@@ -1,10 +1,9 @@
-from typing import TYPE_CHECKING
 from sqlmodel import Session, select
 
 from .functions import make_request_with_retries, request_with_timing
 from .player import Player
 from .system import System
-from .game import Game
+from .archive import Archive
 
 class Lichess(System):
     @staticmethod
@@ -17,7 +16,10 @@ class Lichess(System):
             data = request_with_timing(url)
         else:
             data = make_request_with_retries(url)
+        if not data:
+            return None
 
     @staticmethod
-    def get_archives(player: Player, start: int, end: int, timing: bool = False) -> list[Game]:
+    def get_archives(player: Player, start: int, end: int, timing: bool = False) -> list[Archive]:
+        # We need to convert this start and end into an object that we can actually use
         raise NotImplementedError

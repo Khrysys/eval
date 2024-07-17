@@ -3,7 +3,7 @@ from models import *
 import matplotlib.pyplot as plt
 from scipy.stats import rankdata # type: ignore
 
-def hold():
+def calculate():
     with Session(engine) as session:
         effective_intervals = 0
         # We are using a set to prevent double counting
@@ -109,23 +109,21 @@ def hold():
                 player.rating = -1
             session.add(player)
         x = rankdata(values, method='ordinal')/len(values)
-        plt.scatter(x, values)
-        plt.savefig(f'var/loader/{len(x)}')
+        plt.scatter(x, values) # type: ignore
+        plt.savefig(f'var/loader/{len(x)}') # type: ignore
         session.commit()
 
 
 def recurse():
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         players = session.exec(select(Player)).all()
         if len(players) == 0:
             return
         for player in players:
             for archive in player.archives(end=1):
                 archive.games(session=session)
-                session.flush()
-
-        session.commit()
-    hold()
+                session.commit()
+                calculate()
 
 if __name__ == '__main__':
     init_models()

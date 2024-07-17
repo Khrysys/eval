@@ -1,4 +1,4 @@
-from sqlmodel import Field, SQLModel, Session, select
+from sqlmodel import Field, SQLModel, Session, select # type: ignore
 
 
 class TimeControl(SQLModel, table=True):

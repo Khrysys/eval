@@ -2,16 +2,16 @@ from functools import lru_cache
 from math import exp, log10, sqrt
 from time import sleep, time
 import requests
-from scipy.stats import norm
+from scipy.stats import norm # type: ignore
 
-def sigmoid(x, a:float=1):
+def sigmoid(x: float, a:float=1):
     return a * ((1 / (1 + exp((-x) + 0.5)))) - ((a - 1) / 2)
 
 def prop_se(p: float, n: float):
     return sqrt(p * (1 - p) / n)
 
 def z_score_2tail(x: float = 0.95):
-    return norm.ppf(x / 2 + 0.5)
+    return norm.ppf(x / 2 + 0.5) # type: ignore
 
 def expected_rating_diff(win_rate: float):
     return -326 * log10((1-win_rate) / win_rate)

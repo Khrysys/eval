@@ -1,6 +1,5 @@
-from functools import lru_cache
 from sqlalchemy import UniqueConstraint
-from sqlmodel import Field, SQLModel, Session, select
+from sqlmodel import Field, SQLModel, Session, select # type: ignore
 
 
 class Opening(SQLModel, table=True):

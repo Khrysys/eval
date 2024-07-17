@@ -2,12 +2,13 @@ from pydantic import ValidationError
 from sqlmodel import  SQLModel, Session
 
 from .player import Player
+from .game import Game
 
 class Archive(SQLModel):
     player: Player
     url: str
 
-    def games(self, *, session: Session):
+    def games(self, *, session: Session) -> list[Game]:
         from .system import SystemNames
         from .chesscom import Chesscom
         if self.player.system == SystemNames.chesscom:
