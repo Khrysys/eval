@@ -11,4 +11,4 @@ RUN poetry install --with loader
 COPY models models
 COPY loader_main.py loader_main.py
 
-CMD ["poetry", "run", "python", "loader_main.py"]
+CMD ["poetry", "run", "python", "-u", "loader_main.py"]
