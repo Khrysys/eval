@@ -72,7 +72,8 @@ def calculate(*, session: Session):
             valid_matches[player_a].add(match.id)
             valid_matches[player_b].add(match.id)
 
-    for i in range(1, 3):
+    unscaled_ratings = loop_through(1, list(matches), valid_matches, unscaled_ratings)
+    for i in range(1, 5):
         unscaled_ratings = loop_through(i, list(matches), valid_matches, unscaled_ratings)
 
     # Get all confidence intervals for this player
