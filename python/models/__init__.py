@@ -33,7 +33,7 @@ def statistics(*, session: Session):
     count = len(session.exec(select(TimeControl)).all())
     print(f'- {count} distinct time controls')
 
-url = URL.create('postgresql+psycopg', 'postgres', 'postgres', 'localhost', 5432, 'postgres')
+url = URL.create('postgresql+psycopg', 'postgres', 'postgres', 'database', 5432, 'database')
 engine = create_engine(url, pool_pre_ping=True)
 
 def init_models():
