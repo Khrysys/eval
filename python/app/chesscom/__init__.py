@@ -12,7 +12,7 @@ async def get_chesscom_player(username: str, *, session: Session = Depends(get_s
     '''
     return Chesscom.get_player(username, session=session)
 
-@chesscomapi.get('/player/{username}/archives')
+@chesscomapi.get('/player/{username}/archives', response_model=list[Archive])
 async def get_chesscom_player_archives(username: str, *, session: Session = Depends(get_session)):
     player = Chesscom.get_player(username, session=session)
     if not player:
@@ -20,7 +20,7 @@ async def get_chesscom_player_archives(username: str, *, session: Session = Depe
     
     return player.archives(end=-1)
 
-@chesscomapi.get('/player/{username}/archives/{index}')
+@chesscomapi.get('/player/{username}/archives/{index}', response_model=Archive)
 async def get_chesscom_player_single_archive(username: str, index: int, *, session: Session = Depends(get_session)):
     player = Chesscom.get_player(username, session=session)
     if not player:
@@ -32,7 +32,7 @@ async def get_chesscom_player_single_archive(username: str, index: int, *, sessi
 
     return archives[-(index+1)]
 
-@chesscomapi.get('/player/{username}/archives/{index}/games')
+@chesscomapi.get('/player/{username}/archives/{index}/games', response_model=list[Game])
 async def get_chesscom_player_games_from_archive(username: str, index: int, *, session: Session = Depends(get_session)):
     player = Chesscom.get_player(username, session=session)
     if not player:
