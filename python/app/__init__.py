@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import Depends, FastAPI
 from sqlmodel import Session, select
 
 from models import get_session, Player, Game, Match, Opening, TimeControl
 
 
-app = APIRouter(prefix='/api')
+app = FastAPI(prefix='/api')
 @app.get('/count/player')
 def get_player_count(*, session: Session = Depends(get_session)):
     return len(session.exec(select(Player)).all())
