@@ -1,48 +1,67 @@
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from itertools import repeat
 from math import floor, sqrt
-from models import *
+from sqlmodel import Session, select
+from models import Match, Player, expected_rating_diff, sigmoid, engine, init_models, Chesscom, statistics
 import matplotlib.pyplot as plt
 from scipy.stats import rankdata # type: ignore
+from time import time
 
-def loop_through(i: int, matches: list[Match], valid_matches: dict[str, set[int]], unscaled_ratings: dict[str, tuple[float, float]]):
-    for username, data in valid_matches.items():
-        if username not in unscaled_ratings:
-            unscaled_ratings[username] = (0, 0)
-        prev_lower, prev_upper = unscaled_ratings[username]
-        prev_midpoint = (prev_lower + prev_upper) / 2
-        prev_half_width = (prev_upper - prev_lower) / 2
+def process_player(i: int, matches: dict[int, Match], valid_matches: set[int], unscaled_ratings: dict[str, tuple[float, float]], username: str):
+    if not unscaled_ratings.get(username):
+        unscaled_ratings[username] = (0, 0)
+    prev_lower, prev_upper = unscaled_ratings[username]
+    prev_midpoint = (prev_lower + prev_upper) / 2
+    prev_half_width = (prev_upper - prev_lower) / 2
+    
+    for match_id in valid_matches:
+        match = matches[match_id]
+        is_player_a = username == match.player_a_username
+        opponent = match.player_b if is_player_a else match.player_a
+        opponent_rating = unscaled_ratings.get(opponent.username)
+        if not opponent_rating:
+            continue
+        opponent_upper, opponent_lower = opponent_rating
+        opponent_midpoint = (opponent_lower + opponent_upper) / 2
+        opponent_half_width = (opponent_upper - opponent_lower) / 2
+        
+        lower, upper = match.interval_bounds()
+        if not is_player_a:
+            lower *= -1
+            upper *= -1
             
-        for match_id in data:
-            match = [match for match in matches if match.id == match_id][0] # This is safe, we know that match_id only exists once and only once inside of this set
-            is_player_a = username == match.player_a.username
-            opponent = match.player_b if is_player_a else match.player_a
-            if opponent.username not in unscaled_ratings:
+        
+        lower = sigmoid(lower, 1.2)
+        upper = sigmoid(upper, 1.2)
+
+        lower = expected_rating_diff(lower)
+        upper = expected_rating_diff(upper)
+
+        midpoint = (lower + upper) / 2
+        half_width = (upper - lower) / 2
+        
+        next_midpoint = (((prev_midpoint - opponent_midpoint) - midpoint) / i) + prev_midpoint
+        next_half_width = sqrt(pow(half_width, 2) + pow(prev_half_width, 2) + pow(opponent_half_width, 2))
+        
+        return (username, (next_midpoint - next_half_width, next_midpoint + next_half_width))
+
+def loop_through(i: int, matches: dict[int, Match], valid_matches: dict[str, set[int]], unscaled_ratings: dict[str, tuple[float, float]]):
+    '''
+    with ProcessPoolExecutor() as executor:
+        results = executor.map(process_player, repeat(i), repeat(matches), [valid_matches[username] for username in valid_matches], repeat(unscaled_ratings), [username for username in valid_matches], chunksize=16)
+        for result in results:
+            if not result:
                 continue
-
-            opponent_upper, opponent_lower = unscaled_ratings[opponent.username]
-            opponent_midpoint = (opponent_lower + opponent_upper) / 2
-            opponent_half_width = (opponent_upper - opponent_lower) / 2
-            
-            lower, upper = match.interval_bounds()
-            if not is_player_a:
-                lower *= -1
-                upper *= -1
-                
-            lower = sigmoid(lower, 1.2)
-            upper = sigmoid(upper, 1.2)
-
-            lower = expected_rating_diff(lower)
-            upper = expected_rating_diff(upper)
-
-            midpoint = (lower + upper) / 2
-            half_width = (upper - lower) / 2
-            
-            next_midpoint = (((prev_midpoint - opponent_midpoint) - midpoint) / i) + prev_midpoint
-            next_half_width = sqrt(pow(half_width, 2) + pow(prev_half_width, 2) + pow(opponent_half_width, 2))
-            
-            unscaled_ratings[username] = (next_midpoint - next_half_width, next_midpoint + next_half_width)
-            
+            username, rating = result
+            unscaled_ratings[username] = rating
+    '''
+    results = map(process_player, repeat(i), repeat(matches), [valid_matches[username] for username in valid_matches], repeat(unscaled_ratings), [username for username in valid_matches])
+    for result in results:
+        if not result:
+            continue
+        username, rating = result
+        unscaled_ratings[username] = rating
     return unscaled_ratings
-                
 
 def calculate(*, session: Session):
     effective_intervals = 0
@@ -52,29 +71,34 @@ def calculate(*, session: Session):
     # Start with a player
 
     # Look at al confidence intervals
-    matches = session.exec(select(Match)).all()
-
-    for match in matches:
-        if len(match.games) < 2:
+    matches = {m.id: m for m in session.exec(select(Match)).all()}
+    
+    start = time()
+    for m in matches.values():
+        if len(m.games) < 2:
             continue
 
-        match.calculate_rating_difference(session=session)
+        m.calculate_rating_difference(session=session)
         
-        player_a = match.player_a.username
-        player_b = match.player_b.username
+        player_a = m.player_a.username
+        player_b = m.player_b.username
         if player_a not in valid_matches:
             valid_matches[player_a] = set()
         if player_b not in valid_matches:
             valid_matches[player_b] = set()
 
-        if match.id:
+        if m.id:
             effective_intervals += 1
-            valid_matches[player_a].add(match.id)
-            valid_matches[player_b].add(match.id)
-
-    unscaled_ratings = loop_through(1, list(matches), valid_matches, unscaled_ratings)
-    for i in range(1, 5):
-        unscaled_ratings = loop_through(i, list(matches), valid_matches, unscaled_ratings)
+            valid_matches[player_a].add(m.id)
+            valid_matches[player_b].add(m.id)
+    print(f"Filter took {time() - start} seconds")
+    print('here4')
+    start = time()
+    unscaled_ratings = loop_through(1, matches, valid_matches, unscaled_ratings) # type: ignore
+    print(f'Loop took {time() - start} seconds')
+    start = time()
+    unscaled_ratings = loop_through(2, matches, valid_matches, unscaled_ratings) # type: ignore
+    print(f'Loop took {time() - start} seconds')
 
     # Get all confidence intervals for this player
 
@@ -88,6 +112,7 @@ def calculate(*, session: Session):
         print('No players to run data on yet')
         return
 
+    start = time()
     # Normalize all ratings
     minimum = min(final_ratings.values())
 
@@ -114,6 +139,7 @@ def calculate(*, session: Session):
         else:
             player.rating = -1
         session.add(player)
+    print(f'Normalization took {time() - start} seconds')
     x = rankdata(values, method='ordinal')/len(values)
     plt.scatter(x, values) # type: ignore
     plt.savefig(f'var/loader/{len(x)}') # type: ignore
@@ -130,13 +156,18 @@ def recurse():
             for archive in player.archives(end=1, timing=True):
                 games = archive.games(True, True, session=session)
                 session.commit()
-                if len(games) > 100:
+                if len(games) > 0:
+                    start = time()
                     calculate(session=session)
+                    print(f'Rating calculation took {time() - start} seconds.')
 
 if __name__ == '__main__':
     init_models()
     with Session(engine) as session:
         Chesscom.get_player('hikaru', timing=True, session=session)
         session.commit()
+        statistics(session=session)
+        calculate(session=session)
+    exit()
     while True:
         recurse()
