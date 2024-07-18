@@ -130,7 +130,7 @@ def recurse():
             for archive in player.archives(end=1, timing=True):
                 games = archive.games(True, True, session=session)
                 session.commit()
-                if len(games) > 30:
+                if len(games) > 100:
                     calculate(session=session)
 
 if __name__ == '__main__':
