@@ -76,7 +76,7 @@ class Chesscom(System):
         return output
     
     @staticmethod
-    def get_games(archive: Archive, timing: bool = True, *, session: Session):
+    def get_games(archive: Archive, timing: bool = True, new_only: bool = False, *, session: Session):
         if timing:
             data = request_with_timing(archive.url)
         else:
@@ -98,7 +98,8 @@ class Chesscom(System):
             
             g = session.exec(select(Game).where(Game.url==url)).one_or_none()
             if g:
-                output.append(g)
+                if not new_only:
+                    output.append(g)
                 continue
             
             time_control_code = game.get('time_control')

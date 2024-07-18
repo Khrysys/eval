@@ -128,9 +128,10 @@ def recurse():
             return
         for player in players:
             for archive in player.archives(end=1, timing=True):
-                archive.games(session=session)
+                games = archive.games(True, True, session=session)
                 session.commit()
-                calculate(session=session)
+                if len(games) > 30:
+                    calculate(session=session)
 
 if __name__ == '__main__':
     init_models()
