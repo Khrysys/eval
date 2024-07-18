@@ -8,7 +8,7 @@ fastapi = FastAPI()
 
 fastapi.mount('/api', app.app)
 
-fastapi.mount('/', StaticFiles(directory='/var/loader'))
+fastapi.mount('/', StaticFiles(directory='/var/loader', check_dir=False))
 
 if __name__ == '__main__':
     run(Server(Config(
