@@ -16,6 +16,8 @@ services:
     build:
       context: ./python
       dockerfile: api.Dockerfile
+    volumes:
+      - ./python/loader:/var/loader
     ports:
       - "8000:8000"
     depends_on:
