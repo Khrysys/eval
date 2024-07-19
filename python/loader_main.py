@@ -66,7 +66,7 @@ def calculate(*, session: Session):
     # Look at al confidence intervals
     matches = {m.id: m for m in session.exec(select(Match).join(Game, Match.id == Game.match_id).group_by(Match.id).having(func.count(Game.url) >= 2)).fetchall()} # type: ignore
     
-    for match in matches.values():
+    for id, match in matches.items():
         match.calculate_rating_difference(session=session)
         valid_matches.setdefault(match.player_a.username, set()).add(id) # type: ignore
         valid_matches.setdefault(match.player_b.username, set()).add(id) # type: ignore
