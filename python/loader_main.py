@@ -1,8 +1,9 @@
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import repeat
 from math import floor, sqrt
+import numpy as np
+from sqlalchemy import func
 from sqlmodel import Session, select
-from models import Match, Player, expected_rating_diff, sigmoid, engine, init_models, Chesscom, statistics
+from models import Match, Player, expected_rating_diff, sigmoid, engine, init_models, Chesscom, statistics, Game
 import matplotlib.pyplot as plt
 from scipy.stats import rankdata # type: ignore
 from time import time
@@ -46,51 +47,33 @@ def process_player(i: int, matches: dict[int, Match], valid_matches: set[int], u
         return (username, (next_midpoint - next_half_width, next_midpoint + next_half_width))
 
 def loop_through(i: int, matches: dict[int, Match], valid_matches: dict[str, set[int]], unscaled_ratings: dict[str, tuple[float, float]]):
-    '''
-    with ProcessPoolExecutor() as executor:
-        results = executor.map(process_player, repeat(i), repeat(matches), [valid_matches[username] for username in valid_matches], repeat(unscaled_ratings), [username for username in valid_matches], chunksize=16)
-        for result in results:
-            if not result:
-                continue
-            username, rating = result
-            unscaled_ratings[username] = rating
-    '''
     results = map(process_player, repeat(i), repeat(matches), [valid_matches[username] for username in valid_matches], repeat(unscaled_ratings), [username for username in valid_matches])
     for result in results:
         if not result:
             continue
         username, rating = result
-        unscaled_ratings[username] = rating
+        unscaled_ratings[username]=rating
     return unscaled_ratings
 
 def calculate(*, session: Session):
     effective_intervals = 0
     # We are using a set to prevent double counting
     valid_matches: dict[str, set[int]] = {}
+    all_valid_matches: set[int] = set()
     unscaled_ratings: dict[str, tuple[float, float]] = {}
     # Start with a player
 
-    # Look at al confidence intervals
-    matches = {m.id: m for m in session.exec(select(Match)).all()}
-    
     start = time()
-    for m in matches.values():
-        if len(m.games) < 2:
-            continue
+    # Look at al confidence intervals
+    matches = {m.id: m for m in session.exec(select(Match).join(Game, Match.id == Game.match_id).group_by(Match.id).having(func.count(Game.url) >= 2)).all()} # type: ignore
+    
 
-        m.calculate_rating_difference(session=session)
-        
-        player_a = m.player_a.username
-        player_b = m.player_b.username
-        if player_a not in valid_matches:
-            valid_matches[player_a] = set()
-        if player_b not in valid_matches:
-            valid_matches[player_b] = set()
-
-        if m.id:
-            effective_intervals += 1
-            valid_matches[player_a].add(m.id)
-            valid_matches[player_b].add(m.id)
+    for id, match in matches.items():
+        match.calculate_rating_difference(session=session)
+        valid_matches.setdefault(match.player_a.username, set()).add(id) # type: ignore
+        valid_matches.setdefault(match.player_b.username, set()).add(id) # type: ignore
+        all_valid_matches.add(id) # type: ignore
+            
     print(f"Filter took {time() - start} seconds")
     print('here4')
     start = time()
@@ -111,9 +94,21 @@ def calculate(*, session: Session):
     if len(final_ratings) == 0:
         print('No players to run data on yet')
         return
+    
+    usernames: list[str] = []
+    ratings: list[float] = []
+    for username, rating in final_ratings.items():
+        usernames.append(username)
+        ratings.append(rating)
+
+    ratings = np.array(ratings) # type: ignore
+    
+    minimum = np.min(ratings)
+    ratings = (ratings-minimum)/(np.max(ratings)+np.max(ratings))
 
     start = time()
     # Normalize all ratings
+    
     minimum = min(final_ratings.values())
 
     for username in final_ratings:
@@ -134,7 +129,7 @@ def calculate(*, session: Session):
     players = session.exec(select(Player)).all()
 
     for player in players:
-        if player.username in final_ratings:
+        if final_ratings.get(player.username):
             player.rating = floor(final_ratings[player.username])
         else:
             player.rating = -1
@@ -163,9 +158,10 @@ def recurse():
 
 if __name__ == '__main__':
     init_models()
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         Chesscom.get_player('hikaru', timing=True, session=session)
         session.commit()
+        
         statistics(session=session)
         calculate(session=session)
     exit()
