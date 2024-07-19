@@ -144,6 +144,7 @@ if __name__ == '__main__':
     while True:
         with Session(engine) as session:
             start = time()
+            print('beginning rating calculation')
             calculate(session=session)
             print(f'Rating calculation took {time() - start} seconds.')
             t = 1200 - (time() - start)
