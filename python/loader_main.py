@@ -64,17 +64,15 @@ def calculate(*, session: Session):
 
     start = time()
     # Look at al confidence intervals
-    matches = {m.id: m for m in session.exec(select(Match).join(Game, Match.id == Game.match_id).group_by(Match.id).having(func.count(Game.url) >= 2)).all()} # type: ignore
+    matches = session.exec(select(Match).join(Game, Match.id == Game.match_id).group_by(Match.id).having(func.count(Game.url) >= 2)).fetchall() # type: ignore
     
-
-    for id, match in matches.items():
+    for match in matches:
         match.calculate_rating_difference(session=session)
         valid_matches.setdefault(match.player_a.username, set()).add(id) # type: ignore
         valid_matches.setdefault(match.player_b.username, set()).add(id) # type: ignore
         all_valid_matches.add(id) # type: ignore
             
     print(f"Filter took {time() - start} seconds")
-    print('here4')
     start = time()
     unscaled_ratings = loop_through(1, matches, valid_matches, unscaled_ratings) # type: ignore
     print(f'Loop took {time() - start} seconds')
@@ -150,21 +148,12 @@ def recurse():
             for archive in player.archives(end=1, timing=True):
                 games = archive.games(True, True, session=session)
                 session.commit()
-                if len(games) > 0:
+                if len(games) > 100:
                     start = time()
                     calculate(session=session)
                     print(f'Rating calculation took {time() - start} seconds.')
 
 if __name__ == '__main__':
     init_models()
-    with Session(engine, expire_on_commit=False) as session:
-        Chesscom.get_player('hikaru', timing=True, session=session)
-        session.commit()
-        
-        statistics(session=session)
-        start = time()
-        calculate(session=session)
-        print(f'Total time: {time() - start} seconds')
-    exit()
     while True:
         recurse()
