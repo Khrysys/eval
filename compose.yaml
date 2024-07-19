@@ -17,20 +17,27 @@ services:
       context: ./python
       dockerfile: api.Dockerfile
     volumes:
-      - ./python/loader:/var/loader
+      - ./python/snapshots:/var/snapshots
     ports:
       - "8000:8000"
     depends_on:
       - database
-      - loader
 
   loader:
     container_name: loader
     build:
       context: ./python/
       dockerfile: loader.Dockerfile
+    depends_on:
+      - database
+
+  calculate:
+    container_name: calculate
+    build: 
+      context: ./python/
+      dockerfile: calculate.Dockerfile
     volumes:
-      - ./python/loader:/var/loader
+      - ./python/snapshots:/var/snapshots
     depends_on:
       - database
 
