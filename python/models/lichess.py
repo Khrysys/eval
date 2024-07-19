@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from .functions import make_request_with_retries, request_with_timing
+from .functions import request_with_retries, request_with_timing
 from .player import Player
 from .system import System
 from .archive import Archive
@@ -15,7 +15,7 @@ class Lichess(System):
         if timing:
             data = request_with_timing(url)
         else:
-            data = make_request_with_retries(url)
+            data = request_with_retries(url)
         if not data:
             return None
 

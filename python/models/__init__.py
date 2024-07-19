@@ -5,7 +5,7 @@ from sqlmodel import (Session, SQLModel,
 
 from .archive import Archive # type: ignore
 from .chesscom import Chesscom # type: ignore
-from .functions import (expected_rating_diff, make_request_with_retries, # type: ignore
+from .functions import (expected_rating_diff, request_with_retries, # type: ignore
                         prop_se, request_with_timing, sigmoid, z_score_2tail) # type: ignore
 from .game import Game # type: ignore
 from .lichess import Lichess # type: ignore

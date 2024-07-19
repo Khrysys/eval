@@ -25,7 +25,7 @@ class Chesscom(System):
         if timing:
             data = request_with_timing(url)
         else:
-            data = make_request_with_retries(url)
+            data = request_with_retries(url)
         if not data:
             return None
         
@@ -52,7 +52,7 @@ class Chesscom(System):
         if timing:
             data = request_with_timing(url)
         else:
-            data = make_request_with_retries(url)
+            data = request_with_retries(url)
 
         output: list[Archive] = []
 
@@ -80,7 +80,7 @@ class Chesscom(System):
         if timing:
             data = request_with_timing(archive.url)
         else:
-            data = make_request_with_retries(archive.url)
+            data = request_with_retries(archive.url)
         output: list[Game] = []
         if not data:
             return output

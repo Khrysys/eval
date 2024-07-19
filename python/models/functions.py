@@ -19,8 +19,7 @@ def expected_rating_diff(win_rate: float):
 def expected_win_rate(ra: float, rb: float):
     return 1 / (1 + 10 ** ((rb - ra) / 326)) # 326 is derived from wanting a 100 point rating difference to be a 67% win rate for the higher rated player
 
-@lru_cache(maxsize=2 ** 10)
-def make_request_with_retries(url: str, retries: int = 3, delay: int = 60):
+def request_with_retries(url: str, retries: int = 3, delay: int = 60):
     for i in range(retries):
         try:
             print(f'Getting {url} (Attempt {i + 1} / {retries})')
@@ -40,6 +39,6 @@ def make_request_with_retries(url: str, retries: int = 3, delay: int = 60):
 
 def request_with_timing(url: str, retries: int = 3, delay: int = 60):
     start = time()
-    r = make_request_with_retries(url, retries, delay)
+    r = request_with_retries(url, retries, delay)
     print(f'Request to {url} took {round(100 * (time() - start), 2)} ms')
     return r
