@@ -56,7 +56,6 @@ def loop_through(i: int, matches: dict[int, Match], valid_matches: dict[str, set
     return unscaled_ratings
 
 def calculate(*, session: Session):
-    effective_intervals = 0
     # We are using a set to prevent double counting
     valid_matches: dict[str, set[int]] = {}
     all_valid_matches: set[int] = set()
@@ -124,7 +123,7 @@ def calculate(*, session: Session):
 
     #print(x)
     print(f'{len(values)} players calculated')
-    print(f'{effective_intervals} intervals used')
+    print(f'{len(valid_matches)} matches used')
 
     players = session.exec(select(Player)).all()
 
@@ -163,7 +162,9 @@ if __name__ == '__main__':
         session.commit()
         
         statistics(session=session)
+        start = time()
         calculate(session=session)
+        print(f'Total time: {time() - start} seconds')
     exit()
     while True:
         recurse()
