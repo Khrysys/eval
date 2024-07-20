@@ -148,12 +148,12 @@ if __name__ == '__main__':
     if not path.exists('/var/snapshots/pdf'):
         mkdir('/var/snapshots/pdf')
     while True:
+        start = time()
         with Session(engine) as session:
-            start = time()
             print('Beginning Rating Calculation')
             calculate(session=session)
             print(f'Rating calculation took {time() - start} seconds.')
-            t = 300 - (time() - start)
-            if t > 0:
-                print(f'Waiting for {t} seconds')
-                sleep(t)
+        t = 300 - (time() - start)
+        if t > 0:
+            print(f'Waiting for {t} seconds')
+            sleep(t)
