@@ -1,5 +1,6 @@
 from itertools import repeat
 from math import floor, sqrt
+from os import mkdir, path
 from time import sleep, time
 from scipy.stats import rankdata
 
@@ -8,7 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sqlmodel import Session, select
 from models import Player, Match, sigmoid,expected_rating_diff, Game, engine
-
+from scipy.stats import norm
 
 def process_player(i: int, matches: dict[int, Match], valid_matches: set[int], unscaled_ratings: dict[str, tuple[float, float]], username: str):
     if not unscaled_ratings.get(username):
@@ -104,28 +105,20 @@ def calculate(*, session: Session):
     ratings = np.array(ratings) # type: ignore
     
     minimum = np.min(ratings)
-    ratings = (ratings-minimum)/(np.max(ratings)+np.max(ratings))
-
     # Normalize all ratings
-    
-    minimum = min(final_ratings.values())
+    ratings = (ratings-minimum)*(3000/(np.max(ratings)+np.max(ratings)))
 
-    for username in final_ratings:
-        final_ratings[username] -= minimum
-
-    maximum = max(final_ratings.values())
-
-    for username in final_ratings:
-        final_ratings[username] *= 3000 / maximum
 
     # Update all ratings
-    values = list(final_ratings.values())
 
     #print(x)
-    print(f'{len(values)} players calculated')
-    print(f'{len(valid_matches)} matches used')
+    print(f'{len(ratings)} players calculated')
+    print(f'{len(matches)} matches used')
 
     players = session.exec(select(Player)).all()
+
+    for i in range(0, len(ratings)):
+        final_ratings[usernames[i]] = ratings[i]
 
     for player in players:
         if final_ratings.get(player.username):
@@ -134,13 +127,26 @@ def calculate(*, session: Session):
             player.rating = -1
         session.add(player)
     print(f'Normalization took {time() - start} seconds')
-    x = rankdata(values, method='ordinal')/len(values)
-    plt.scatter(x, values) # type: ignore
+    start = time()
+    x = rankdata(ratings, method='ordinal')/len(ratings)
+    plt.scatter(x, ratings) # type: ignore
     plt.savefig(f'/var/snapshots/{len(x)}') # type: ignore
     plt.close()
+    mu, std = norm.fit(ratings)
+    plt.hist(ratings, bins=25, density=True)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 200)
+    p = norm.pdf(x, mu, std)
+    plt.plot(x, p, 'k', linewidth=2)
+    title = "Fit results: mu = %.2f,  std = %.2f" % (mu, std)
+    plt.title(title)
+    plt.savefig(f'/var/snapshots/pdf/{len(x)}') # type: ignore
+    print(f'Outputting snapshot took {time() - start} seconds')
     session.commit()
 
 if __name__ == '__main__':
+    if not path.exists('/var/snapshots/pdf'):
+        mkdir('/var/snapshots/pdf')
     while True:
         with Session(engine) as session:
             start = time()
