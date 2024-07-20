@@ -67,14 +67,17 @@ def calculate(*, session: Session):
     start = time()
     # Look at al confidence intervals
     matches = {m.id: m for m in session.exec(select(Match).join(Game, Match.id == Game.match_id).group_by(Match.id).having(func.count(Game.url) >= 2)).fetchall()} # type: ignore
+    print(f"Filter took {time() - start} seconds")
+    start = time()
     
     for id, match in matches.items():
         match.calculate_rating_difference(session=session)
         valid_matches.setdefault(match.player_a.username, set()).add(id) # type: ignore
         valid_matches.setdefault(match.player_b.username, set()).add(id) # type: ignore
         all_valid_matches.add(id) # type: ignore
+
+    print(f'Sorting took {time() - start} seconds')
             
-    print(f"Filter took {time() - start} seconds")
     start = time()
     unscaled_ratings = loop_through(1, matches, valid_matches, unscaled_ratings) # type: ignore
     print(f'Loop took {time() - start} seconds')
