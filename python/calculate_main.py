@@ -147,7 +147,7 @@ if __name__ == '__main__':
             print('Beginning Rating Calculation')
             calculate(session=session)
             print(f'Rating calculation took {time() - start} seconds.')
-            t = 1200 - (time() - start)
+            t = 300 - (time() - start)
             if t > 0:
                 print(f'Waiting for {t} seconds')
                 sleep(t)
