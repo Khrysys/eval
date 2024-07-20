@@ -130,7 +130,7 @@ def calculate(*, session: Session):
     start = time()
     x = rankdata(ratings, method='ordinal')/len(ratings)
     plt.scatter(x, ratings) # type: ignore
-    plt.savefig(f'/var/snapshots/{len(x)}') # type: ignore
+    plt.savefig(f'/var/snapshots/{len(ratings)}') # type: ignore
     plt.close()
     mu, std = norm.fit(ratings)
     plt.hist(ratings, bins=25, density=True)
@@ -140,7 +140,7 @@ def calculate(*, session: Session):
     plt.plot(x, p, 'k', linewidth=2)
     title = "Fit results: mu = %.2f,  std = %.2f" % (mu, std)
     plt.title(title)
-    plt.savefig(f'/var/snapshots/pdf/{len(x)}') # type: ignore
+    plt.savefig(f'/var/snapshots/pdf/{len(ratings)}') # type: ignore
     print(f'Outputting snapshot took {time() - start} seconds')
     session.commit()
 
