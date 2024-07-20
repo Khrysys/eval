@@ -1,5 +1,5 @@
 
-from sqlalchemy import URL
+from sqlalchemy import URL, func
 from sqlmodel import (Session, SQLModel,
                       create_engine, select)
 
@@ -22,15 +22,15 @@ def get_session():
 
 def statistics(*, session: Session):
     print("Database Statistics")
-    count = len(session.exec(select(Player)).all())
+    count = session.exec(select(func.count()).select_from(Player))
     print(f'- {count} players')
-    count = len(session.exec(select(Game)).all())
+    count = session.exec(select(func.count()).select_from(Game))
     print(f'- {count} games')
-    count = len(session.exec(select(Match)).all())
+    count = session.exec(select(func.count()).select_from(Match))
     print(f'- {count} matches')
-    count = len(session.exec(select(Opening)).all())
+    count = session.exec(select(func.count()).select_from(Opening))
     print(f'- {count} distinct openings')
-    count = len(session.exec(select(TimeControl)).all())
+    count = session.exec(select(func.count()).select_from(TimeControl))
     print(f'- {count} distinct time controls')
 
 url = URL.create('postgresql+psycopg', 'postgres', 'postgres', 'database', 5432, 'database')

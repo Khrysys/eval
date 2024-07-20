@@ -1,21 +1,22 @@
 from fastapi import Depends, FastAPI
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from models import get_session, Player, Game, Match, Opening, TimeControl
 
 
-app = FastAPI(prefix='/api')
+app = FastAPI()
 @app.get('/count/player', response_model=int)
 def get_player_count(*, session: Session = Depends(get_session)):
-    return len(session.exec(select(Player)).all())
+    return session.exec(select(func.count()).select_from(Player))
 
 @app.get('/count/game', response_model=int)
 def get_game_count(*, session: Session = Depends(get_session)):
-    return len(session.exec(select(Game)).all())
+    return session.exec(select(func.count()).select_from(Game))
 
 @app.get('/count/match', response_model=int)
 def get_match_count(*, session: Session = Depends(get_session)):
-    return len(session.exec(select(Match)).all())
+    return session.exec(select(func.count()).select_from(Match))
 
 @app.get('/opening', response_model=list[Opening])
 def get_all_openings(*, session: Session = Depends(get_session)):
