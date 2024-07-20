@@ -8,15 +8,15 @@ from models import get_session, Player, Game, Match, Opening, TimeControl
 app = FastAPI()
 @app.get('/count/player', response_model=int)
 def get_player_count(*, session: Session = Depends(get_session)):
-    return session.exec(select(func.count()).select_from(Player))
+    return session.exec(select(func.count()).select_from(Player)).first()
 
 @app.get('/count/game', response_model=int)
 def get_game_count(*, session: Session = Depends(get_session)):
-    return session.exec(select(func.count()).select_from(Game))
+    return session.exec(select(func.count()).select_from(Game)).first()
 
 @app.get('/count/match', response_model=int)
 def get_match_count(*, session: Session = Depends(get_session)):
-    return session.exec(select(func.count()).select_from(Match))
+    return session.exec(select(func.count()).select_from(Match)).first()
 
 @app.get('/opening', response_model=list[Opening])
 def get_all_openings(*, session: Session = Depends(get_session)):
