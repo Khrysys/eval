@@ -60,8 +60,8 @@ def loop_through(i: int, matches: dict[int, Match], valid_matches: dict[str, set
 def calculate(*, session: Session):
     # We are using a set to prevent double counting
     valid_matches: dict[str, set[int]] = {}
-    all_valid_matches: set[int] = set()
     unscaled_ratings: dict[str, tuple[float, float]] = {}
+    final_ratings: dict[str, float] = {}
     # Start with a player
 
     start = time()
@@ -71,10 +71,8 @@ def calculate(*, session: Session):
     start = time()
     
     for id, match in matches.items():
-        match.calculate_rating_difference(session=session)
         valid_matches.setdefault(match.player_a.username, set()).add(id) # type: ignore
         valid_matches.setdefault(match.player_b.username, set()).add(id) # type: ignore
-        all_valid_matches.add(id) # type: ignore
 
     print(f'Sorting took {time() - start} seconds')
             
@@ -87,7 +85,7 @@ def calculate(*, session: Session):
 
     # Get all confidence intervals for this player
 
-    final_ratings: dict[str, float] = {}
+    start = time()
 
     for username in unscaled_ratings:
         lower, upper = unscaled_ratings[username]
@@ -108,7 +106,6 @@ def calculate(*, session: Session):
     minimum = np.min(ratings)
     ratings = (ratings-minimum)/(np.max(ratings)+np.max(ratings))
 
-    start = time()
     # Normalize all ratings
     
     minimum = min(final_ratings.values())
@@ -147,9 +144,9 @@ if __name__ == '__main__':
     while True:
         with Session(engine) as session:
             start = time()
-            print('beginning rating calculation')
+            print('Beginning Rating Calculation')
             calculate(session=session)
             print(f'Rating calculation took {time() - start} seconds.')
             t = 1200 - (time() - start)
             if t < 0:
-                sleep(t)
+                sleep(t if t > 0 else 1)

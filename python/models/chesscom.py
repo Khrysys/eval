@@ -1,5 +1,6 @@
 from datetime import datetime
 from io import StringIO
+from itertools import repeat
 from sqlmodel import Session, select
 
 
@@ -74,7 +75,74 @@ class Chesscom(System):
             except:
                 continue
         return output
-    
+    @staticmethod
+    def add_single_game(player: Player, game, new_only: bool, session: Session):
+        if not game.get('rules', '') == 'chess':
+            return
+        
+        url = game.get('url')
+        if not url:
+            return
+        
+        g = session.exec(select(Game).where(Game.url==url)).one_or_none()
+        if g:
+            if not new_only:
+                return g
+            return
+        
+        time_control_code = game.get('time_control')
+        if not time_control_code:
+            print(f'No time control on {url}')
+            time_control_code = ''
+        time_control = TimeControl.get(time_control_code, session=session)
+
+        pgn = game.get('pgn')
+        if not pgn:
+            print(f'No PGN on {url}')
+            return
+        
+        g = load_pgn(StringIO(pgn))
+        if not g:
+            print(f'PGN was invalid on {url}')
+            return
+        
+        eco = g.headers.get('ECO', '')
+        eco_url = g.headers.get('ECOUrl', '')
+        opening = Opening.get(eco, eco_url, session=session)
+
+        white = game['white']
+        black = game['black']
+        end_time = game['end_time']
+
+        user_is_white: bool = player.username == white['username'].lower().strip()
+        opponent_username = black['username'].lower().strip() if user_is_white else white['username'].lower().strip() 
+        opponent = Chesscom.get_player(opponent_username, session=session)
+        if not opponent:
+            return
+
+        is_draw = any(white['result'].lower().strip() == x for x in ['agreed', 'repetition', 'stalemate', 'insufficient', '50move', 'timevsinsufficient'])
+
+
+        if not is_draw:
+            white_win = white['result'].lower().strip() == 'win'
+
+            player_win = white_win == user_is_white
+        else:
+            player_win = False
+        
+        match = Match.get(player, opponent, session=session)
+        g = Game(
+            url=url,
+            player_a_win=player_win,
+            draw=is_draw,
+            date=datetime.fromtimestamp(int(end_time)),
+            opening=opening,
+            time_control=time_control,
+            match=match
+        )
+        session.add(g)
+        match.calculate_rating_difference(session=session)
+        return g
     @staticmethod
     def get_games(archive: Archive, timing: bool = True, new_only: bool = False, *, session: Session):
         if timing:
@@ -88,72 +156,7 @@ class Chesscom(System):
         games = data['games']
         start = time()
 
-        for game in games:
-            if not game.get('rules', '') == 'chess':
-                continue
-            
-            url = game.get('url')
-            if not url:
-                continue
-            
-            g = session.exec(select(Game).where(Game.url==url)).one_or_none()
-            if g:
-                if not new_only:
-                    output.append(g)
-                continue
-            
-            time_control_code = game.get('time_control')
-            if not time_control_code:
-                print(f'No time control on {url}')
-                time_control_code = ''
-            time_control = TimeControl.get(time_control_code, session=session)
-
-            pgn = game.get('pgn')
-            if not pgn:
-                print(f'No PGN on {url}')
-                continue
-            
-            g = load_pgn(StringIO(pgn))
-            if not g:
-                print(f'PGN was invalid on {url}')
-                continue
-            
-            eco = g.headers.get('ECO', '')
-            eco_url = g.headers.get('ECOUrl', '')
-            opening = Opening.get(eco, eco_url, session=session)
-
-            white = game['white']
-            black = game['black']
-            end_time = game['end_time']
-
-            user_is_white: bool = archive.player.username == white['username'].lower().strip()
-            opponent_username = black['username'].lower().strip() if user_is_white else white['username'].lower().strip() 
-            opponent = Chesscom.get_player(opponent_username, session=session)
-            if not opponent:
-                continue
-
-            is_draw = any(white['result'].lower().strip() == x for x in ['agreed', 'repetition', 'stalemate', 'insufficient', '50move', 'timevsinsufficient'])
-
-
-            if not is_draw:
-                white_win = white['result'].lower().strip() == 'win'
-
-                player_win = white_win == user_is_white
-            else:
-                player_win = False
-            
-            match = Match.get(archive.player, opponent, session=session)
-            g = Game(
-                url=url,
-                player_a_win=player_win,
-                draw=is_draw,
-                date=datetime.fromtimestamp(int(end_time)),
-                opening=opening,
-                time_control=time_control,
-                match=match
-            )
-            session.add(g)
-            output.append(g)
+        output = [x for x in map(Chesscom.add_single_game, repeat(archive.player), games, repeat(new_only), repeat(session)) if x]
 
         print(f'Processing {len(games)} games took {round(time() - start, 2)} s')
         return output
