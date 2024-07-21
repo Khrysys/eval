@@ -141,6 +141,7 @@ def calculate(*, session: Session):
     title = "Fit results: mu = %.2f,  std = %.2f" % (mu, std)
     plt.title(title)
     plt.savefig(f'/var/snapshots/pdf/{len(ratings)}') # type: ignore
+    plt.close()
     print(f'Outputting snapshot took {time() - start} seconds')
     session.commit()
 
