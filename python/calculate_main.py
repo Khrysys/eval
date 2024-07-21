@@ -106,7 +106,7 @@ def calculate(*, session: Session):
     
     minimum = np.min(ratings)
     # Normalize all ratings
-    ratings = (ratings-minimum)*(3000/(np.max(ratings)+np.max(ratings)))
+    ratings = (ratings-minimum)*(3000/(np.max(ratings)-minimum))
 
 
     # Update all ratings
