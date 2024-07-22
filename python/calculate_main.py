@@ -133,7 +133,7 @@ def calculate(*, session: Session):
     plt.savefig(f'/var/snapshots/{len(ratings)}') # type: ignore
     plt.close()
     mu, std = norm.fit(ratings)
-    plt.hist(ratings, bins=25, density=True)
+    plt.hist(ratings, bins=100, density=True)
     xmin, xmax = plt.xlim()
     x = np.linspace(xmin, xmax, 200)
     p = norm.pdf(x, mu, std)
